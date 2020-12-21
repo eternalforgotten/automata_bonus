@@ -1,0 +1,5 @@
+f     0      1
+P     Q,S    Q
+Q     R      Q,R
+R     S      P
+S     -      P
