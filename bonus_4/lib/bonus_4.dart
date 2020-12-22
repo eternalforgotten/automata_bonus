@@ -51,7 +51,8 @@ class Automata {
     var setStartState = Set.of({startState});
     determinedStates.add(setStartState);
     var startTransition = '';
-    startTransition += setStartState.toString() + ':' + _nicePrintStringSpaces(setStartState);
+    startTransition +=
+        setStartState.toString() + ':' + _nicePrintStringSpaces(setStartState);
     for (var i = 0; i < alphabet.length; i++) {
       var newState = _oldStates[startState][alphabet[i]].toSet();
       if (_symmetricDifference(setStartState, newState).isNotEmpty) {
@@ -59,7 +60,8 @@ class Automata {
         _newStates.add(newState);
         determinedStates.add(newState);
       }
-      startTransition += newState.toString().trim() + _nicePrintStringSpaces(newState);
+      startTransition +=
+          newState.toString().trim() + _nicePrintStringSpaces(newState);
     }
     determinedTransitionTable.add(startTransition);
 
@@ -76,9 +78,10 @@ class Automata {
 
   void _addComplexState(Set<String> complexState) {
     if (complexState.isEmpty) return;
-    determinedStates.add(complexState);
+    _addIfNotContains(complexState, true);
     var transition = '';
-    transition += complexState.toString() + ':' + _nicePrintStringSpaces(complexState);
+    transition +=
+        complexState.toString() + ':' + _nicePrintStringSpaces(complexState);
     for (var i = 0; i < alphabet.length; i++) {
       Set<String> resultState = {};
       complexState.forEach((stateSymbol) {
@@ -87,13 +90,15 @@ class Automata {
           resultState = resultState.union(newState);
         }
       });
-      transition += resultState.toString() + _nicePrintStringSpaces(resultState);
-      _addIfNotContains(resultState);
+      transition +=
+          resultState.toString() + _nicePrintStringSpaces(resultState);
+      _addIfNotContains(resultState, false);
     }
-    determinedTransitionTable.add(transition);
+    if (!determinedTransitionTable.contains(transition))
+      determinedTransitionTable.add(transition);
   }
 
-  void _addIfNotContains(Set<String> state) {
+  void _addIfNotContains(Set<String> state, bool allMode) {
     bool add = true;
     determinedStates.forEach((added) {
       var equal = _symmetricDifference(added, state).isEmpty;
@@ -102,7 +107,7 @@ class Automata {
       }
     });
     if (add) {
-      _newStates.add(state);
+      allMode ? determinedStates.add(state) :_newStates.add(state);
     }
   }
 
@@ -116,6 +121,7 @@ class Automata {
       print(line);
     });
     print('\n');
+    print(determinedStates);
   }
 
   void printNonDeterminedTransitionTable() {
@@ -126,12 +132,11 @@ class Automata {
     print('\n');
   }
 
-  String _nicePrintStringSpaces(Set state){
+  String _nicePrintStringSpaces(Set state) {
     var string = '';
-    if (state.isNotEmpty){
-      string = '   '*(nonDeterminedStates.length - state.length);
-    }
-    else {
+    if (state.isNotEmpty) {
+      string = '   ' * (nonDeterminedStates.length - state.length);
+    } else {
       string = '          ';
     }
     return string;
