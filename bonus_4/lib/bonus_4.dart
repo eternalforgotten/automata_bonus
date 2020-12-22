@@ -5,20 +5,22 @@ class Automata {
   List<String> alphabet;
   List<String> nonDeterminedStates = [];
   List<String> determinedTransitionTable = [];
-  Map<String, Map<String, List<String>>> oldStates;
+  Map<String, Map<String, List<String>>> _oldStates;
+  final spacesPattern = RegExp(r'\s+');
 
-  Set<Set<String>> newStates = {};
-  Set<Set<String>> absoluteAllNewStates = {};
+  final Set<Set<String>> _newStates = {};
+  Set<Set<String>> determinedStates = {};
 
   //initializes and read table from file
-  Automata(String fileName, List<String> alphabet) {
-    this.alphabet = alphabet;
+  Automata(String fileName) {
     var file = File(fileName);
-    nonDeterminedTransitionTable = file.readAsLinesSync().skip(1).toList();
+    var lines = file.readAsLinesSync();
+    alphabet = lines[0].split(spacesPattern).skip(1).toList();
+    nonDeterminedTransitionTable = lines.skip(1).toList();
     nonDeterminedTransitionTable.forEach((line) {
-      assert(line.split(RegExp(r'\s+')).length - 1 == alphabet.length);
+      assert(line.split(spacesPattern).length - 1 == alphabet.length);
     });
-    oldStates = _initializeNonDeterminedStates();
+    _oldStates = _initializeNonDeterminedStates();
     _determineAutomata();
   }
 
@@ -27,7 +29,7 @@ class Automata {
     // ignore: omit_local_variable_types
     Map<String, Map<String, List<String>>> states = {};
     nonDeterminedTransitionTable.forEach((line) {
-      var array = line.split(RegExp(r'\s+'));
+      var array = line.split(spacesPattern);
       nonDeterminedStates.add(array[0]);
       states.putIfAbsent(array[0], () {
         // ignore: omit_local_variable_types
@@ -47,46 +49,45 @@ class Automata {
     Set<Set<String>> currentStates = {};
     var startState = nonDeterminedStates[0];
     var setStartState = Set.of({startState});
-    absoluteAllNewStates.add(setStartState);
+    determinedStates.add(setStartState);
     var startTransition = '';
-    startTransition += setStartState.toString() + ':  ';
+    startTransition += setStartState.toString() + ':' + _nicePrintStringSpaces(setStartState);
     for (var i = 0; i < alphabet.length; i++) {
-      var newState = oldStates[startState][alphabet[i]].toSet();
+      var newState = _oldStates[startState][alphabet[i]].toSet();
       if (_symmetricDifference(setStartState, newState).isNotEmpty) {
         currentStates.add(newState);
-        newStates.add(newState);
-        absoluteAllNewStates.add(newState);
+        _newStates.add(newState);
+        determinedStates.add(newState);
       }
-      startTransition += newState.toString().trim() + '  ';
+      startTransition += newState.toString().trim() + _nicePrintStringSpaces(newState);
     }
     determinedTransitionTable.add(startTransition);
 
-    while (newStates.isNotEmpty) {
+    while (_newStates.isNotEmpty) {
       currentStates.forEach((state) {
         _addComplexState(state);
-        newStates.removeWhere(
+        _newStates.removeWhere(
             (compState) => _symmetricDifference(compState, state).isEmpty);
       });
       currentStates.clear();
-      currentStates.addAll(newStates);
-      print(newStates.toString());
+      currentStates.addAll(_newStates);
     }
   }
 
   void _addComplexState(Set<String> complexState) {
     if (complexState.isEmpty) return;
-    absoluteAllNewStates.add(complexState);
+    determinedStates.add(complexState);
     var transition = '';
-    transition += complexState.toString() + ':  ';
+    transition += complexState.toString() + ':' + _nicePrintStringSpaces(complexState);
     for (var i = 0; i < alphabet.length; i++) {
       Set<String> resultState = {};
       complexState.forEach((stateSymbol) {
-        var newState = oldStates[stateSymbol][alphabet[i]].toSet();
+        var newState = _oldStates[stateSymbol][alphabet[i]].toSet();
         if (newState.length != 1 || newState.first != '-') {
           resultState = resultState.union(newState);
         }
       });
-      transition += resultState.toString() + '  ';
+      transition += resultState.toString() + _nicePrintStringSpaces(resultState);
       _addIfNotContains(resultState);
     }
     determinedTransitionTable.add(transition);
@@ -94,14 +95,14 @@ class Automata {
 
   void _addIfNotContains(Set<String> state) {
     bool add = true;
-    absoluteAllNewStates.forEach((added) {
+    determinedStates.forEach((added) {
       var equal = _symmetricDifference(added, state).isEmpty;
       if (equal) {
         add = false;
       }
     });
     if (add) {
-      newStates.add(state);
+      _newStates.add(state);
     }
   }
 
@@ -110,8 +111,29 @@ class Automata {
   }
 
   void printDeterminedTransitionTable() {
+    print('Determined transition table \n');
     determinedTransitionTable.forEach((line) {
       print(line);
     });
+    print('\n');
+  }
+
+  void printNonDeterminedTransitionTable() {
+    print('Non-determined transition table \n');
+    nonDeterminedTransitionTable.forEach((line) {
+      print(line);
+    });
+    print('\n');
+  }
+
+  String _nicePrintStringSpaces(Set state){
+    var string = '';
+    if (state.isNotEmpty){
+      string = '   '*(nonDeterminedStates.length - state.length);
+    }
+    else {
+      string = '          ';
+    }
+    return string;
   }
 }
